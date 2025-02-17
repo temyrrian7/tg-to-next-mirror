@@ -1,7 +1,6 @@
-// pages/api/posts.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions/index.js';
+import { NextRequest, NextResponse } from "next/server";
+import { TelegramClient } from "telegram";
+import { StringSession } from "telegram/sessions/index.js";
 
 type TelegramPost = {
     id: number;
@@ -10,9 +9,9 @@ type TelegramPost = {
 };
 
 const apiId = Number(process.env.TELEGRAM_API_ID);
-const apiHash = process.env.TELEGRAM_API_HASH || '';
-const sessionString = process.env.TELEGRAM_SESSION_STRING || '';
-const channelUsername = process.env.TELEGRAM_CHANNEL || '';
+const apiHash = process.env.TELEGRAM_API_HASH || "";
+const sessionString = process.env.TELEGRAM_SESSION_STRING || "";
+const channelUsername = process.env.TELEGRAM_CHANNEL || "";
 
 let client: TelegramClient | null = null;
 
@@ -25,23 +24,24 @@ async function getTelegramClient() {
     return client;
 }
 
-export default async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse<TelegramPost[] | { error: string }>
-) {
+export async function GET(request: NextRequest) {
+    console.log(request);
     try {
         const tgClient = await getTelegramClient();
         const result = await tgClient.getMessages(channelUsername, { limit: 10 });
 
         const posts: TelegramPost[] = result.map((msg) => ({
             id: msg.id,
-            text: msg.message || '',
-            date: msg.date,
+            text: msg.message || "",
+            date: new Date (msg.date * 1000),
         }));
 
-        res.status(200).json(posts);
+        return NextResponse.json(posts);
     } catch (error: any) {
-        console.error('Error fetching Telegram posts:', error);
-        res.status(500).json({ error: error.message || 'Failed to fetch posts' });
+        console.error("Error fetching Telegram posts:", error);
+        return NextResponse.json(
+            { error: error.message || "Failed to fetch posts" },
+            { status: 500 }
+        );
     }
 }
